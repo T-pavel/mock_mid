@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "GH_PAGES_BASE=/${npm_package_name}/ gh-pages -d dist"
+    "deploy": "GH_PAGES_BASE=/mock_mid/ gh-pages -d dist"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
