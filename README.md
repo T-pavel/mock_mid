@@ -1,69 +1,98 @@
-# React + TypeScript + Vite
+# Документация МВП интерфейса
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ниже описаны пользовательский путь, правила доступности функционала по ролям и зависимостям, а также диаграммы взаимодействия.
 
-Currently, two official plugins are available:
+## Пользовательский путь и переходы
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```mermaid
+flowchart TD
+  A["Старт"] --> H["Главная (/)" ]
+  H -->|"Создать новую карточку ИД"| C["CreateIdCardPage (/create)"]
+  C -->|"Отмена"| H
+  C -->|"Сохранить (валидно)"| S["saveIdCardForm -> localStorage"]
+  S --> I["IdCardHeaderPage (/id-card)"]
 
-## Expanding the ESLint configuration
+  I --> SD["Выбор параметра в SourceDataBlock"]
+  SD --> SC{"scope = equipmentType:label"}
+  SC --> AT["AttachmentsBlock (по scope)"]
+  SC --> RV["ReviewPIBlock (по scope)"]
+  I --> GA["GlobalAttachmentsBlock"]
+  I --> HI["HistoryBlock"]
+  I --> CH["ChatWidget"]
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+  I -->|"Кнопка 'Изменить' (functionalAdmin)"| EM["EditModal → saveIdCardForm"]
+  I -->|"Кнопка 'Параметры заказчика' (provider)"| CM["CustomerModal → saveIdCardForm"]
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Роли, права и зависимости
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```mermaid
+flowchart LR
+  R["userRole из localStorage"] -->|"provider"| P["Поставщик"]
+  R -->|"project"| PR["Проект"]
+  R -->|"functionalAdmin"| FA["Функциональный админ"]
+  R -->|"other"| O["Прочие"]
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+  SC["scope = equipmentType:label"]
+  SC --> AT["AttachmentsBlock"]
+  SC --> RV["ReviewPIBlock"]
+
+  P -->|"видит"| AT
+  P -->|"может"| UP["Upload/Удалить/Сроки/Сохранить в AT"]
+  UP --> SAVE_AT["saveAttachmentsScoped + saveAttachmentsMetaScoped"]
+  SAVE_AT --> CLR["clearReviewScoped (очистка статуса)"]
+  CLR --> EVT1["window 'review:cleared'"]
+  CLR --> RV
+  SAVE_AT --> HIST1["addHistory('Сохранены файлы поставщика')"]
+
+  PR --> RV
+  PR --> GA["GlobalAttachmentsBlock"]
+  PR -->|"может"| RV_ACT["План/Факт, Согласовать/Отклонить"]
+  RV_ACT --> LS_RV["saveReviewScoped"]
+  RV_ACT --> EVT2["window 'review:updated'"]
+  RV_ACT --> HIST2["addHistory(события Review)"]
+
+  FA -->|"может"| EDIT["EditModal (правка ИД)"]
+  EDIT --> ID_SAVE["saveIdCardForm"]
+
+  O -->|"только просмотр"| AT
+  O --> RV
+  O --> GA
 ```
+
+## Правила видимости и доступности по ролям
+
+- **functionalAdmin**:
+  - Доступна кнопка «Изменить» в шапке ИД (правка всех полей карточки, сохранение в `idCardForm`).
+- **provider**:
+  - Доступна кнопка «Заполнить параметры заказчика» в шапке ИД.
+  - В `AttachmentsBlock` доступны: загрузка/удаление файлов, редактирование сроков (дни/план/факт), «Сохранить».
+  - Сохранение в `AttachmentsBlock` обнуляет Review для текущего `scope` и пишет историю.
+- **project**:
+  - В `ReviewPIBlock` доступны: редактирование план/факт, «Согласовать», «Отклонить» (с причиной). Сохраняет и пишет историю.
+  - В `GlobalAttachmentsBlock` доступны: загрузка/удаление, «Сохранить».
+- **other**:
+  - Только просмотр всех блоков; загрузка/правка недоступны.
+
+## Зависимости блоков от данных и выбора
+
+- **scope**: вычисляется как `equipmentType:labelПараметра` при выборе пункта в `SourceDataBlock`.
+  - `AttachmentsBlock` и `ReviewPIBlock` всегда отображают данные по текущему `scope`.
+  - Смена параметра → перечитка данных для нового `scope` в этих блоках.
+- **equipmentType**: влияет на состав списка параметров в `SourceDataBlock`.
+- **События окна**:
+  - `review:cleared` — посылается `AttachmentsBlock` при сохранении; `ReviewPIBlock` очищает статус для текущего `scope`.
+  - `review:updated` — посылается `ReviewPIBlock` при действиях; подписчики синхронизируются.
+  - `history:updated` — посылается при `addHistory`; `HistoryBlock` перечитывает список.
+
+## Краткое описание страниц и блоков
+
+- **HomePage**: кнопка → `/create`.
+- **CreateIdCardPage**: модалка с валидацией; «Сохранить» → `idCardForm` → `/id-card`, «Отмена» → `/`.
+- **IdCardHeaderPage**: шапка ИД, выбор параметра → формирует `scope`; содержит `SourceDataBlock`, `AttachmentsBlock`, `ReviewPIBlock`, `GlobalAttachmentsBlock`, `HistoryBlock`, `ChatWidget`. Кнопки зависят от роли.
+- **SourceDataBlock**: список параметров по `equipmentType`; влияет на `scope`.
+- **AttachmentsBlock**: работа с файлами поставщика и сроками по `scope`; «Сохранить» записывает данные и сбрасывает Review.
+- **ReviewPIBlock**: план/факт и статус согласования по `scope` (проект); пишет историю.
+- **GlobalAttachmentsBlock**: файлы проекта (без `scope`) — управление доступно проекту.
+- **HistoryBlock**: вывод истории действий.
+- **ChatWidget**: локальный чат без сохранения в хранилище.
