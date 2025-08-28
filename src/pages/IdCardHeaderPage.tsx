@@ -9,6 +9,7 @@ import {
   DatePicker,
   Select,
 } from "antd";
+import { FilePdfOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import type { IdCardData } from "../types/idCard";
 import { loadIdCardForm, saveIdCardForm, getUserRole } from "../utils/storage";
@@ -102,6 +103,23 @@ export default function IdCardHeaderPage() {
     setEditModalOpen(false);
   };
 
+  const downloadDraft = () => {
+    try {
+      const blob = new Blob(
+        ["PDF draft placeholder for IdCard (fake content)\n"],
+        { type: "application/pdf" }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Черновик карточки.pdf";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      // no-op
+    }
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -179,7 +197,32 @@ export default function IdCardHeaderPage() {
           <span>
             <strong>Дата начала отсчета:</strong> {data?.countStartDate ?? "-"}
           </span>
-          <span style={{ visibility: "hidden" }}>—</span>
+          {data ? (
+            <span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <FilePdfOutlined style={{ color: "#cf1322" }} />
+                  <a onClick={downloadDraft} style={{ fontWeight: 600 }}>
+                    Черновик карточки.pdf
+                  </a>
+                </div>
+              </div>
+            </span>
+          ) : (
+            <span style={{ visibility: "hidden" }}>—</span>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>

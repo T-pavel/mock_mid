@@ -64,7 +64,7 @@ export default function GlobalAttachmentsBlock() {
 
   return (
     <Card
-      title="Файлы проекта"
+      title="Согласованные файлы исходных данных"
       extra={isProject ? <Button onClick={save}>Сохранить</Button> : null}
       style={{ marginTop: 16, width: "50%", flex: "0 0 50%" }}
     >
