@@ -8,8 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "GH_PAGES_BASE=/mock_mid/ gh-pages -d dist"
+    "postbuild": "cp dist/index.html dist/404.html",
+    "predeploy": "GH_PAGES_BASE=/skatch_mid/ npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
