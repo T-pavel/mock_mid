@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "postbuild": "cp dist/index.html dist/404.html",
-    "predeploy": "GH_PAGES_BASE=/skatch_mid/ npm run build",
+    "predeploy": "GH_PAGES_BASE=/mock_mid/ npm run build",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
